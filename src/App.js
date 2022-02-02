@@ -1,43 +1,40 @@
-import { Component } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { nanoid } from 'nanoid';
 
 import { Section, ContactForm, Filter, ContactList } from './components';
-import {
-  handleInputChange,
-  saveToStorage,
-  loadFromStorage,
-  DATA_TO_LOAD,
-  DATA_TO_SAVE,
-} from './utils';
+import { saveToStorage, loadFromStorage } from './utils';
 
 import { Wrapper, PageHeader } from './App.styled';
 
-export default class App extends Component {
-  state = {
-    contacts: null,
-    filter: '',
-  };
+export default function App() {
+  const [contacts, setContacts] = useState(() => loadFromStorage('contacts'));
+  const [filter, setFilter] = useState('');
 
-  componentDidMount() {
-    this.setState(() => ({
-      [DATA_TO_LOAD]: [...loadFromStorage(DATA_TO_LOAD)],
-    }));
-  }
+  const filteredContacts = useCallback(() => {
+    return contacts.filter(contact => {
+      return contact.name.toLowerCase().includes(filter.toLowerCase());
+    });
+  }, [contacts, filter]);
 
-  componentDidUpdate(_, prevState) {
-    const { state, filterContacts, claenFilter } = this;
+  useEffect(() => {
+    saveToStorage('contacts', contacts);
+  }, [contacts]);
 
-    state[DATA_TO_SAVE] !== prevState[DATA_TO_SAVE] &&
-      saveToStorage(DATA_TO_SAVE, state[DATA_TO_SAVE]);
+  useEffect(() => {
+    setFilter(() => {
+      if (filter && filteredContacts().length === 0) {
+        console.log('filter', filter);
+        return window.confirm(
+          `No more search results for "${filter}", clear filter?`,
+        )
+          ? ''
+          : filter;
+      }
+      return filter;
+    });
+  }, [filter, filteredContacts]);
 
-    if (prevState.filter && filterContacts().length === 0) {
-      claenFilter();
-    }
-  }
-
-  handleFilterInputChange = handleInputChange.bind(this);
-
-  addContact = (newName, newNumber) => {
+  function addContact(newName, newNumber) {
     const newContact = {
       id: nanoid(),
       name: newName,
@@ -45,64 +42,42 @@ export default class App extends Component {
     };
     const { name } = newContact;
 
-    this.checkDuplicatedContacts(name)
-      ? console.log(`${name} is already in contacts`)
-      : this.setState(prevState => ({
-          contacts: [newContact, ...prevState.contacts],
-        }));
-  };
+    checkDuplicatedContacts(name)
+      ? alert(`${name} is already in contacts`)
+      : setContacts(prevState => {
+          return prevState ? [newContact, ...prevState] : [newContact];
+        });
+  }
 
-  filterContacts = () => {
-    const { contacts, filter } = this.state;
-    const filteredContacts =
-      contacts &&
-      contacts.filter(contact =>
-        contact.name.toLowerCase().includes(filter.toLowerCase()),
-      );
-    return filteredContacts;
-  };
-
-  claenFilter = () => {
-    this.setState({ filter: '' });
-  };
-
-  deleteContact = id => {
-    this.setState(
-      prevState =>
-        prevState.contacts && {
-          contacts: prevState.contacts.filter(contact => contact.id !== id),
-        },
-    );
-  };
-
-  checkDuplicatedContacts = validatedName =>
-    this.state.contacts.find(
-      contact => contact.name.toLowerCase() === validatedName.toLowerCase(),
-    );
-
-  render() {
-    const { filter } = this.state;
-    const {
-      addContact,
-      handleFilterInputChange,
-      filterContacts,
-      deleteContact,
-    } = this;
-
-    return (
-      <Wrapper>
-        <PageHeader>Phonebook</PageHeader>
-        <ContactForm onSubmit={addContact} />
-        <Section header="Contacts">
-          <Filter value={filter} onChange={handleFilterInputChange}>
-            Find contacts by name
-          </Filter>
-          <ContactList
-            contacts={filterContacts()}
-            deleteContact={deleteContact}
-          />
-        </Section>
-      </Wrapper>
+  function deleteContact(id) {
+    setContacts(
+      prevState => prevState && prevState.filter(contact => contact.id !== id),
     );
   }
+
+  function checkDuplicatedContacts(validatedName) {
+    return contacts.find(
+      contact => contact.name.toLowerCase() === validatedName.toLowerCase(),
+    );
+  }
+
+  function handleFilterInputChange(e) {
+    setFilter(e.target.value);
+  }
+
+  return (
+    <Wrapper>
+      <PageHeader>Phonebook</PageHeader>
+      <ContactForm onSubmit={addContact} />
+      <Section header="Contacts">
+        <Filter value={filter} onChange={e => handleFilterInputChange(e)}>
+          Find contacts by name
+        </Filter>
+        <ContactList
+          contacts={filteredContacts()}
+          deleteContact={deleteContact}
+        />
+      </Section>
+    </Wrapper>
+  );
 }

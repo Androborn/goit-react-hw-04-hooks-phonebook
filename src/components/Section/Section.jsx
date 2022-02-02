@@ -1,6 +1,6 @@
-import PropTypes from "prop-types";
+import PropTypes from 'prop-types';
 
-import { SectionHeader } from "./Section.styled";
+import { SectionHeader } from './Section.styled';
 
 export const Section = ({ header, children }) => (
   <>
