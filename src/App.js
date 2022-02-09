@@ -50,9 +50,7 @@ export default function App() {
   }
 
   function deleteContact(id) {
-    setContacts(
-      prevState => prevState && prevState.filter(contact => contact.id !== id),
-    );
+    setContacts(prevState => prevState.filter(contact => contact.id !== id));
   }
 
   function checkDuplicatedContacts(validatedName) {
