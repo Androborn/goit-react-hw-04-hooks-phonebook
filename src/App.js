@@ -21,17 +21,17 @@ export default function App() {
   }, [contacts]);
 
   useEffect(() => {
-    setFilter(() => {
-      if (filter && filteredContacts().length === 0) {
-        console.log('filter', filter);
-        return window.confirm(
+    const filterNotEmpty = filter;
+    const noFilteredContactsAvailable = filteredContacts().length === 0;
+
+    if (filterNotEmpty && noFilteredContactsAvailable) {
+      return (
+        window.confirm(
           `No more search results for "${filter}", clear filter?`,
-        )
-          ? ''
-          : filter;
-      }
-      return filter;
-    });
+        ) && setFilter('')
+      );
+    }
+    setFilter(filter);
   }, [filter, filteredContacts]);
 
   function addContact(newName, newNumber) {
@@ -45,7 +45,7 @@ export default function App() {
     checkDuplicatedContacts(name)
       ? alert(`${name} is already in contacts`)
       : setContacts(prevState => {
-          return prevState ? [newContact, ...prevState] : [newContact];
+          return [newContact, ...prevState];
         });
   }
 
